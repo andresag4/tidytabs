@@ -69,3 +69,23 @@ test('bucketByDomain: respects threshold parameter', () => {
   assert.equal(bucketByDomain(tabs, 3).size, 0);
   assert.equal(bucketByDomain(tabs, 2).size, 1);
 });
+
+import { pickGroupColor } from '../src/group.js';
+import { hashColor, paletteColor, COLORS } from '../src/domain.js';
+
+test('pickGroupColor: stable-hash uses hashColor', () => {
+  const color = pickGroupColor('github.com', 0, { colorStrategy: 'stable-hash' });
+  assert.equal(color, hashColor('github.com'));
+});
+
+test('pickGroupColor: palette uses paletteColor by index', () => {
+  assert.equal(
+    pickGroupColor('github.com', 2, { colorStrategy: 'palette' }),
+    paletteColor(2)
+  );
+});
+
+test('pickGroupColor: random returns a color from the palette', () => {
+  const color = pickGroupColor('github.com', 0, { colorStrategy: 'random' });
+  assert.ok(COLORS.includes(color));
+});

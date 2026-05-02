@@ -1,4 +1,4 @@
-import { extractDomain } from './domain.js';
+import { extractDomain, COLORS, hashColor, paletteColor } from './domain.js';
 
 export const TAB_GROUP_ID_NONE = -1;
 
@@ -16,4 +16,16 @@ export function bucketByDomain(tabs, threshold) {
     if (list.length < threshold) buckets.delete(domain);
   }
   return buckets;
+}
+
+export function pickGroupColor(domain, paletteIndex, settings) {
+  switch (settings.colorStrategy) {
+    case 'random':
+      return COLORS[Math.floor(Math.random() * COLORS.length)];
+    case 'palette':
+      return paletteColor(paletteIndex);
+    case 'stable-hash':
+    default:
+      return hashColor(domain);
+  }
 }
