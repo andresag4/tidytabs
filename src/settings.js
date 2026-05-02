@@ -38,3 +38,56 @@ export function applyDefaults(raw) {
   }
   return out;
 }
+
+async function readStore() {
+  if (typeof chrome === 'undefined' || !chrome.storage) return {};
+  try {
+    return await chrome.storage.sync.get(null);
+  } catch (e) {
+    console.warn('tidytabs: storage.sync read failed, falling back to local', e);
+    try {
+      return await chrome.storage.local.get(null);
+    } catch (e2) {
+      console.error('tidytabs: storage.local read also failed', e2);
+      return {};
+    }
+  }
+}
+
+async function writeStore(patch) {
+  if (typeof chrome === 'undefined' || !chrome.storage) return;
+  try {
+    await chrome.storage.sync.set(patch);
+  } catch (e) {
+    console.warn('tidytabs: storage.sync write failed, falling back to local', e);
+    try {
+      await chrome.storage.local.set(patch);
+    } catch (e2) {
+      console.error('tidytabs: storage.local write also failed', e2);
+    }
+  }
+}
+
+export async function getSettings() {
+  const raw = await readStore();
+  return applyDefaults(raw);
+}
+
+export async function setSetting(key, value) {
+  if (!(key in DEFAULTS)) throw new Error(`unknown setting: ${key}`);
+  await writeStore({ [key]: value });
+}
+
+export async function resetSettings() {
+  if (typeof chrome === 'undefined' || !chrome.storage) return;
+  try {
+    await chrome.storage.sync.clear();
+  } catch (e) {
+    console.warn('tidytabs: storage.sync clear failed', e);
+  }
+  try {
+    await chrome.storage.local.clear();
+  } catch (e) {
+    console.warn('tidytabs: storage.local clear failed', e);
+  }
+}
