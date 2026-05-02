@@ -29,3 +29,20 @@ export function pickGroupColor(domain, paletteIndex, settings) {
       return hashColor(domain);
   }
 }
+
+export function computeGroupOrder(groups, settings) {
+  const copy = [...groups];
+  switch (settings.groupOrder) {
+    case 'alphabetical':
+      copy.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'largest':
+      copy.sort((a, b) => (b.size - a.size) || a.name.localeCompare(b.name));
+      break;
+    case 'leftmost':
+    default:
+      copy.sort((a, b) => a.leftmostIndex - b.leftmostIndex);
+      break;
+  }
+  return copy.map(g => g.id);
+}

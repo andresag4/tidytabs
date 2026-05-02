@@ -89,3 +89,51 @@ test('pickGroupColor: random returns a color from the palette', () => {
   const color = pickGroupColor('github.com', 0, { colorStrategy: 'random' });
   assert.ok(COLORS.includes(color));
 });
+
+import { computeGroupOrder } from '../src/group.js';
+
+const grp = (id, name, leftmostIndex, size) => ({ id, name, leftmostIndex, size });
+
+test('computeGroupOrder: leftmost — sorts by leftmostIndex ascending', () => {
+  const groups = [
+    grp(1, 'Github', 5, 3),
+    grp(2, 'Youtube', 1, 2),
+    grp(3, 'Reddit', 9, 4)
+  ];
+  const order = computeGroupOrder(groups, { groupOrder: 'leftmost' });
+  assert.deepEqual(order, [2, 1, 3]);
+});
+
+test('computeGroupOrder: alphabetical — sorts by name', () => {
+  const groups = [
+    grp(1, 'Youtube', 0, 2),
+    grp(2, 'Github', 5, 3),
+    grp(3, 'Reddit', 9, 4)
+  ];
+  const order = computeGroupOrder(groups, { groupOrder: 'alphabetical' });
+  assert.deepEqual(order, [2, 3, 1]);
+});
+
+test('computeGroupOrder: largest — sorts by size desc', () => {
+  const groups = [
+    grp(1, 'Github', 0, 2),
+    grp(2, 'Youtube', 5, 5),
+    grp(3, 'Reddit', 9, 3)
+  ];
+  const order = computeGroupOrder(groups, { groupOrder: 'largest' });
+  assert.deepEqual(order, [2, 3, 1]);
+});
+
+test('computeGroupOrder: largest — alphabetical tiebreak', () => {
+  const groups = [
+    grp(1, 'Reddit', 0, 3),
+    grp(2, 'Github', 5, 3),
+    grp(3, 'Youtube', 9, 3)
+  ];
+  const order = computeGroupOrder(groups, { groupOrder: 'largest' });
+  assert.deepEqual(order, [2, 1, 3]);
+});
+
+test('computeGroupOrder: empty input', () => {
+  assert.deepEqual(computeGroupOrder([], { groupOrder: 'leftmost' }), []);
+});
