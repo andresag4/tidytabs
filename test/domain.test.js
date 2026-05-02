@@ -47,3 +47,21 @@ test('extractDomain: two-label hostname returned as-is', () => {
 test('extractDomain: localhost returned as-is', () => {
   assert.equal(extractDomain('http://localhost:3000/'), 'localhost');
 });
+
+import { prettyName } from '../src/domain.js';
+
+test('prettyName: capitalizes the second-level label', () => {
+  assert.equal(prettyName('github.com'), 'Github');
+});
+
+test('prettyName: works with single-label hostnames', () => {
+  assert.equal(prettyName('localhost'), 'Localhost');
+});
+
+test('prettyName: preserves hyphens', () => {
+  assert.equal(prettyName('news-feed.com'), 'News-feed');
+});
+
+test('prettyName: handles all-lowercase and mixed-case input', () => {
+  assert.equal(prettyName('GITHUB.com'), 'GITHUB');
+});
