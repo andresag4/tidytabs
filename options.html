@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>tidytabs settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main>
+    <h1>tidytabs</h1>
+
+    <section data-key="groupOrder">
+      <h2>Group order</h2>
+      <label><input type="radio" name="groupOrder" value="leftmost" /> Leftmost member wins</label>
+      <label><input type="radio" name="groupOrder" value="alphabetical" /> Alphabetical</label>
+      <label><input type="radio" name="groupOrder" value="largest" /> Largest first</label>
+      <span class="saved" hidden>Saved ✓</span>
+    </section>
+
+    <section data-key="ungroupedPlacement">
+      <h2>Ungrouped tab placement</h2>
+      <label><input type="radio" name="ungroupedPlacement" value="end" /> End of window</label>
+      <label><input type="radio" name="ungroupedPlacement" value="start" /> Start of window</label>
+      <label><input type="radio" name="ungroupedPlacement" value="leave" /> Leave in place</label>
+      <span class="saved" hidden>Saved ✓</span>
+    </section>
+
+    <section data-key="domainThreshold">
+      <h2>Domain threshold</h2>
+      <label>
+        Group when at least
+        <input type="range" name="domainThreshold" min="2" max="5" step="1" />
+        <output></output>
+        tabs share a domain.
+      </label>
+      <span class="saved" hidden>Saved ✓</span>
+    </section>
+
+    <section data-key="autoCollapse">
+      <h2>Auto-collapse new groups</h2>
+      <label><input type="checkbox" name="autoCollapse" /> Collapse new groups when created</label>
+      <span class="saved" hidden>Saved ✓</span>
+    </section>
+
+    <section data-key="colorStrategy">
+      <h2>Color strategy</h2>
+      <label><input type="radio" name="colorStrategy" value="stable-hash" /> Stable per domain</label>
+      <label><input type="radio" name="colorStrategy" value="random" /> Random</label>
+      <label><input type="radio" name="colorStrategy" value="palette" /> Palette in domain order</label>
+      <span class="saved" hidden>Saved ✓</span>
+    </section>
+
+    <section data-key="scope">
+      <h2>Scope</h2>
+      <label><input type="radio" name="scope" value="current" /> Current window</label>
+      <label><input type="radio" name="scope" value="all" /> All windows in this profile</label>
+      <span class="saved" hidden>Saved ✓</span>
+    </section>
+
+    <section>
+      <h2>Reset</h2>
+      <button id="reset" type="button">Reset all settings</button>
+    </section>
+  </main>
+  <script type="module" src="src/options.js"></script>
+</body>
+</html>
