@@ -58,3 +58,64 @@ test('extractTickets: word boundary on right side', () => {
   // In ASCII, "3" and "a" are both \w, so \b is FALSE between them; the match `\b...\d{2,}\b` requires \b after digits, which fails. So FE-3333abc does NOT match.
   assert.deepEqual(extractTickets('FE-3333abc'), []);
 });
+
+import { bucketByTicket } from '../src/ticket.js';
+
+const tk = (id, title) => ({ id, title });
+
+test('bucketByTicket: single-ticket tabs go to their ticket', () => {
+  const tabs = [
+    tk(1, '[FE-3333] Fix login'),
+    tk(2, 'FE-3333 PR #1'),
+    tk(3, 'FE-3334 unrelated')
+  ];
+  const buckets = bucketByTicket(tabs);
+  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 2]);
+  assert.equal(buckets.has('FE-3334'), false); // singleton dropped
+});
+
+test('bucketByTicket: multi-ticket tab joins largest cluster', () => {
+  const tabs = [
+    tk(1, '[FE-3333] PR A'),
+    tk(2, '[FE-3333] Jira A'),
+    tk(3, '[FE-3334] PR B'),
+    tk(4, '[FE-3333][FE-3334] Shared work') // should go to FE-3333 (cluster=3)
+  ];
+  const buckets = bucketByTicket(tabs);
+  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 2, 4]);
+  assert.equal(buckets.has('FE-3334'), false); // FE-3334 ends up with just tab 3 → singleton dropped
+});
+
+test('bucketByTicket: ties broken by lexicographic ticket ID', () => {
+  const tabs = [
+    tk(1, '[FE-3333] one'),
+    tk(2, '[FE-3334] two'),
+    tk(3, '[FE-3333][FE-3334] both') // FE-3333 < FE-3334 lex, both have 1 candidate
+  ];
+  const buckets = bucketByTicket(tabs);
+  // FE-3333 has candidates [1, 3]; FE-3334 has [2, 3]. Both size 2 initially.
+  // For tab 3: tie → goes to FE-3333 (lex smaller).
+  // Final: FE-3333 = [1, 3], FE-3334 = [2] singleton → dropped.
+  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 3]);
+  assert.equal(buckets.has('FE-3334'), false);
+});
+
+test('bucketByTicket: tabs with no tickets are not in any bucket', () => {
+  const tabs = [
+    tk(1, '[FE-3333] one'),
+    tk(2, '[FE-3333] two'),
+    tk(3, 'no ticket here')
+  ];
+  const buckets = bucketByTicket(tabs);
+  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 2]);
+  assert.equal(buckets.size, 1);
+});
+
+test('bucketByTicket: empty input → empty map', () => {
+  assert.equal(bucketByTicket([]).size, 0);
+});
+
+test('bucketByTicket: all singletons → empty map', () => {
+  const tabs = [tk(1, '[FE-3333] x'), tk(2, '[FE-3334] y')];
+  assert.equal(bucketByTicket(tabs).size, 0);
+});
