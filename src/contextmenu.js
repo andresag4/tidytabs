@@ -1,5 +1,7 @@
 import { extractDomain } from './domain.js';
 import { copyText } from './clipboard.js';
+import { runTriage } from './group.js';
+import { getSettings } from './settings.js';
 
 export function filterTabsByDomain(tabs, targetDomain) {
   if (!targetDomain) return [];
@@ -14,13 +16,18 @@ export function filterTabsByDomain(tabs, targetDomain) {
 }
 
 const MENU_ID = 'tidytabs.copyDomainUrls';
+const MERGE_MENU_ID = 'tidytabs.triageMerge';
 
 export function register() {
-  // Recreate fresh each time (handles SW restart cleanly).
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
       title: 'Copy URLs for this domain',
+      contexts: ['action']
+    });
+    chrome.contextMenus.create({
+      id: MERGE_MENU_ID,
+      title: 'Tidy tabs (merge into existing)',
       contexts: ['action']
     });
   });
@@ -32,7 +39,15 @@ export function register() {
 }
 
 async function handleClick(info) {
-  if (info.menuItemId !== MENU_ID) return;
+  if (info.menuItemId === MENU_ID) {
+    return handleCopyUrls();
+  }
+  if (info.menuItemId === MERGE_MENU_ID) {
+    return handleTriageMerge();
+  }
+}
+
+async function handleCopyUrls() {
   try {
     const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (!activeTab || !activeTab.url) return;
@@ -44,5 +59,14 @@ async function handleClick(info) {
     await copyText(urls.join('\n'));
   } catch (e) {
     console.error('tidytabs: copy-domain-urls failed', e);
+  }
+}
+
+async function handleTriageMerge() {
+  try {
+    const settings = await getSettings();
+    await runTriage(settings, { mergeMode: true });
+  } catch (e) {
+    console.error('tidytabs: triage-merge failed', e);
   }
 }
