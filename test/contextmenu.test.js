@@ -184,3 +184,54 @@ test('sortTabIdsByUrl: case-sensitive comparison', () => {
   // ASCII order: 'A' (65) < 'B' (66) < 'a' (97)
   assert.deepEqual(sortTabIdsByUrl(tabs), [3, 2, 1]);
 });
+
+import { sortTabIdsByAge } from '../src/contextmenu.js';
+
+const tabA = (id, lastAccessed) => ({ id, lastAccessed });
+
+test('sortTabIdsByAge: sorts ascending by lastAccessed (oldest first)', () => {
+  const tabs = [
+    tabA(1, 3000),
+    tabA(2, 1000),
+    tabA(3, 2000)
+  ];
+  assert.deepEqual(sortTabIdsByAge(tabs), [2, 3, 1]);
+});
+
+test('sortTabIdsByAge: tabs without lastAccessed sort to the front', () => {
+  const tabs = [
+    tabA(1, 5000),
+    tabA(2, undefined),
+    tabA(3, 3000),
+    tabA(4, 0)
+  ];
+  // 2 and 4 both treated as 0; in input order: 2 then 4. Then 3, then 1.
+  assert.deepEqual(sortTabIdsByAge(tabs), [2, 4, 3, 1]);
+});
+
+test('sortTabIdsByAge: stable for ties', () => {
+  const tabs = [
+    tabA(10, 1000),
+    tabA(20, 1000),
+    tabA(30, 1000)
+  ];
+  assert.deepEqual(sortTabIdsByAge(tabs), [10, 20, 30]);
+});
+
+test('sortTabIdsByAge: empty array returns empty', () => {
+  assert.deepEqual(sortTabIdsByAge([]), []);
+});
+
+test('sortTabIdsByAge: single tab returns single id', () => {
+  assert.deepEqual(sortTabIdsByAge([tabA(7, 1234)]), [7]);
+});
+
+test('sortTabIdsByAge: non-number lastAccessed treated as 0', () => {
+  const tabs = [
+    tabA(1, 'bogus'),
+    tabA(2, 100),
+    tabA(3, null)
+  ];
+  // 1 and 3 treated as 0, in input order. Then 2.
+  assert.deepEqual(sortTabIdsByAge(tabs), [1, 3, 2]);
+});

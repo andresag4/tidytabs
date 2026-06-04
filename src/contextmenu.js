@@ -39,6 +39,17 @@ export function sortTabIdsByUrl(tabs) {
   return indexed.map(x => x.t.id);
 }
 
+export function sortTabIdsByAge(tabs) {
+  const indexed = tabs.map((t, i) => ({ t, i }));
+  indexed.sort((a, b) => {
+    const la = (a.t && typeof a.t.lastAccessed === 'number') ? a.t.lastAccessed : 0;
+    const lb = (b.t && typeof b.t.lastAccessed === 'number') ? b.t.lastAccessed : 0;
+    if (la !== lb) return la - lb;
+    return a.i - b.i; // stable for ties
+  });
+  return indexed.map(x => x.t.id);
+}
+
 const MENU_ID = 'tidytabs.copyDomainUrls';
 const RELOAD_MENU_ID = 'tidytabs.reloadDomain';
 const MERGE_MENU_ID = 'tidytabs.triageMerge';
