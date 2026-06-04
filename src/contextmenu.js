@@ -42,6 +42,7 @@ export function sortTabIdsByUrl(tabs) {
 const MENU_ID = 'tidytabs.copyDomainUrls';
 const RELOAD_MENU_ID = 'tidytabs.reloadDomain';
 const MERGE_MENU_ID = 'tidytabs.triageMerge';
+const SORT_MENU_ID = 'tidytabs.sortGroupByUrl';
 
 export function register() {
   chrome.contextMenus.removeAll(() => {
@@ -58,6 +59,11 @@ export function register() {
     chrome.contextMenus.create({
       id: MERGE_MENU_ID,
       title: 'Tidy tabs (merge into existing)',
+      contexts: ['action']
+    });
+    chrome.contextMenus.create({
+      id: SORT_MENU_ID,
+      title: 'Sort current group tabs alphabetically by URL',
       contexts: ['action']
     });
   });
@@ -77,6 +83,9 @@ async function handleClick(info) {
   }
   if (info.menuItemId === MERGE_MENU_ID) {
     return handleTriageMerge();
+  }
+  if (info.menuItemId === SORT_MENU_ID) {
+    return handleSortGroupByUrl();
   }
 }
 
@@ -121,5 +130,21 @@ async function handleTriageMerge() {
     await runTriage(settings, { mergeMode: true });
   } catch (e) {
     console.error('tidytabs: triage-merge failed', e);
+  }
+}
+
+async function handleSortGroupByUrl() {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!activeTab) return;
+    const gid = activeTab.groupId;
+    if (gid === undefined || gid === -1) return;
+    const tabsInGroup = await chrome.tabs.query({ groupId: gid });
+    if (tabsInGroup.length < 2) return;
+    const startIndex = Math.min(...tabsInGroup.map(t => t.index));
+    const sortedIds = sortTabIdsByUrl(tabsInGroup);
+    await chrome.tabs.move(sortedIds, { index: startIndex });
+  } catch (e) {
+    console.error('tidytabs: sort-group-by-url failed', e);
   }
 }
