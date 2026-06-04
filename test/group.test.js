@@ -137,3 +137,36 @@ test('computeGroupOrder: largest — alphabetical tiebreak', () => {
 test('computeGroupOrder: empty input', () => {
   assert.deepEqual(computeGroupOrder([], { groupOrder: 'leftmost' }), []);
 });
+
+import { findMergeTarget } from '../src/group.js';
+
+const eg = (id, title, leftmostIndex) => ({ id, title, leftmostIndex });
+
+test('findMergeTarget: returns null when no match', () => {
+  const groups = [eg(1, 'Github', 0), eg(2, 'Youtube', 5)];
+  assert.equal(findMergeTarget(groups, 'Reddit'), null);
+});
+
+test('findMergeTarget: returns id when exactly one matches', () => {
+  const groups = [eg(1, 'Github', 0), eg(2, 'Youtube', 5)];
+  assert.equal(findMergeTarget(groups, 'Youtube'), 2);
+});
+
+test('findMergeTarget: returns leftmost id when multiple match', () => {
+  const groups = [
+    eg(2, 'Github', 10),
+    eg(1, 'Github', 0),
+    eg(3, 'Github', 20)
+  ];
+  assert.equal(findMergeTarget(groups, 'Github'), 1);
+});
+
+test('findMergeTarget: case-sensitive', () => {
+  const groups = [eg(1, 'Github', 0)];
+  assert.equal(findMergeTarget(groups, 'github'), null);
+  assert.equal(findMergeTarget(groups, 'GITHUB'), null);
+});
+
+test('findMergeTarget: empty input returns null', () => {
+  assert.equal(findMergeTarget([], 'Github'), null);
+});

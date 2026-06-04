@@ -116,6 +116,17 @@ export async function reorderWindow(windowId, settings) {
   }
 }
 
+export function findMergeTarget(existingGroups, title) {
+  let best = null;
+  for (const g of existingGroups) {
+    if (g.title !== title) continue;
+    if (best === null || g.leftmostIndex < best.leftmostIndex) {
+      best = g;
+    }
+  }
+  return best === null ? null : best.id;
+}
+
 export async function runTriage(settings) {
   const windowIds = [];
   if (settings.scope === 'all') {
