@@ -54,6 +54,7 @@ const MENU_ID = 'tidytabs.copyDomainUrls';
 const RELOAD_MENU_ID = 'tidytabs.reloadDomain';
 const MERGE_MENU_ID = 'tidytabs.triageMerge';
 const SORT_MENU_ID = 'tidytabs.sortGroupByUrl';
+const SORT_AGE_MENU_ID = 'tidytabs.sortGroupByAge';
 
 export function register() {
   chrome.contextMenus.removeAll(() => {
@@ -77,6 +78,11 @@ export function register() {
       title: 'Sort current group tabs alphabetically by URL',
       contexts: ['action']
     });
+    chrome.contextMenus.create({
+      id: SORT_AGE_MENU_ID,
+      title: 'Sort current group tabs by age (oldest first)',
+      contexts: ['action']
+    });
   });
 
   if (!register._listenerInstalled) {
@@ -97,6 +103,9 @@ async function handleClick(info) {
   }
   if (info.menuItemId === SORT_MENU_ID) {
     return handleSortGroupByUrl();
+  }
+  if (info.menuItemId === SORT_AGE_MENU_ID) {
+    return handleSortGroupByAge();
   }
 }
 
@@ -157,5 +166,21 @@ async function handleSortGroupByUrl() {
     await chrome.tabs.move(sortedIds, { index: startIndex });
   } catch (e) {
     console.error('tidytabs: sort-group-by-url failed', e);
+  }
+}
+
+async function handleSortGroupByAge() {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!activeTab) return;
+    const gid = activeTab.groupId;
+    if (gid === undefined || gid === -1) return;
+    const tabsInGroup = await chrome.tabs.query({ groupId: gid });
+    if (tabsInGroup.length < 2) return;
+    const startIndex = Math.min(...tabsInGroup.map(t => t.index));
+    const sortedIds = sortTabIdsByAge(tabsInGroup);
+    await chrome.tabs.move(sortedIds, { index: startIndex });
+  } catch (e) {
+    console.error('tidytabs: sort-group-by-age failed', e);
   }
 }
