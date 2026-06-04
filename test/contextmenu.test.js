@@ -78,3 +78,57 @@ test('filterTabsByDomain: no matches returns empty array', () => {
   const tabs = [tab(1, 'https://github.com/a')];
   assert.deepEqual(filterTabsByDomain(tabs, 'youtube.com'), []);
 });
+
+import { filterTabIdsByDomain } from '../src/contextmenu.js';
+
+const tabT = (id, url, opts = {}) => ({
+  id, url,
+  windowId: opts.windowId ?? 1,
+  index: opts.index ?? id
+});
+
+test('filterTabIdsByDomain: returns IDs for matching tabs', () => {
+  const tabs = [
+    tabT(1, 'https://github.com/a'),
+    tabT(2, 'https://youtube.com/x'),
+    tabT(3, 'https://github.com/c')
+  ];
+  assert.deepEqual(filterTabIdsByDomain(tabs, 'github.com'), [1, 3]);
+});
+
+test('filterTabIdsByDomain: skips ungroupable URLs and missing URLs', () => {
+  const tabs = [
+    tabT(1, 'https://github.com/a'),
+    tabT(2, 'chrome://settings/'),
+    tabT(3, ''),
+    tabT(4, 'https://github.com/d')
+  ];
+  assert.deepEqual(filterTabIdsByDomain(tabs, 'github.com'), [1, 4]);
+});
+
+test('filterTabIdsByDomain: matches subdomains via registrable domain', () => {
+  const tabs = [
+    tabT(1, 'https://github.com/a'),
+    tabT(2, 'https://api.github.com/b'),
+    tabT(3, 'https://docs.github.com/c')
+  ];
+  assert.deepEqual(filterTabIdsByDomain(tabs, 'github.com'), [1, 2, 3]);
+});
+
+test('filterTabIdsByDomain: sorts by (windowId, index)', () => {
+  const tabs = [
+    tabT(3, 'https://github.com/c', { windowId: 2, index: 0 }),
+    tabT(1, 'https://github.com/a', { windowId: 1, index: 5 }),
+    tabT(2, 'https://github.com/b', { windowId: 1, index: 2 })
+  ];
+  assert.deepEqual(filterTabIdsByDomain(tabs, 'github.com'), [2, 1, 3]);
+});
+
+test('filterTabIdsByDomain: empty input returns empty array', () => {
+  assert.deepEqual(filterTabIdsByDomain([], 'github.com'), []);
+});
+
+test('filterTabIdsByDomain: no matches returns empty array', () => {
+  const tabs = [tabT(1, 'https://github.com/a')];
+  assert.deepEqual(filterTabIdsByDomain(tabs, 'youtube.com'), []);
+});
