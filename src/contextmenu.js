@@ -27,6 +27,18 @@ export function filterTabIdsByDomain(tabs, targetDomain) {
   return matching.map(t => t.id);
 }
 
+export function sortTabIdsByUrl(tabs) {
+  const indexed = tabs.map((t, i) => ({ t, i }));
+  indexed.sort((a, b) => {
+    const ua = (a.t && typeof a.t.url === 'string') ? a.t.url : '';
+    const ub = (b.t && typeof b.t.url === 'string') ? b.t.url : '';
+    if (ua < ub) return -1;
+    if (ua > ub) return 1;
+    return a.i - b.i; // stable for ties
+  });
+  return indexed.map(x => x.t.id);
+}
+
 const MENU_ID = 'tidytabs.copyDomainUrls';
 const RELOAD_MENU_ID = 'tidytabs.reloadDomain';
 const MERGE_MENU_ID = 'tidytabs.triageMerge';

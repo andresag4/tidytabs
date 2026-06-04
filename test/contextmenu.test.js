@@ -132,3 +132,55 @@ test('filterTabIdsByDomain: no matches returns empty array', () => {
   const tabs = [tabT(1, 'https://github.com/a')];
   assert.deepEqual(filterTabIdsByDomain(tabs, 'youtube.com'), []);
 });
+
+import { sortTabIdsByUrl } from '../src/contextmenu.js';
+
+const tabU = (id, url) => ({ id, url });
+
+test('sortTabIdsByUrl: sorts ascending by URL string', () => {
+  const tabs = [
+    tabU(3, 'https://github.com/c'),
+    tabU(1, 'https://github.com/a'),
+    tabU(2, 'https://github.com/b')
+  ];
+  assert.deepEqual(sortTabIdsByUrl(tabs), [1, 2, 3]);
+});
+
+test('sortTabIdsByUrl: empty array returns empty', () => {
+  assert.deepEqual(sortTabIdsByUrl([]), []);
+});
+
+test('sortTabIdsByUrl: single tab returns single id', () => {
+  assert.deepEqual(sortTabIdsByUrl([tabU(7, 'https://x.com')]), [7]);
+});
+
+test('sortTabIdsByUrl: tabs with no URL sort to the front', () => {
+  const tabs = [
+    tabU(1, 'https://github.com/a'),
+    tabU(2, undefined),
+    tabU(3, ''),
+    tabU(4, 'https://github.com/b')
+  ];
+  // Two empty-url tabs first (in input order), then a, then b.
+  assert.deepEqual(sortTabIdsByUrl(tabs), [2, 3, 1, 4]);
+});
+
+test('sortTabIdsByUrl: stable for ties', () => {
+  const tabs = [
+    tabU(10, 'https://same.com'),
+    tabU(20, 'https://same.com'),
+    tabU(30, 'https://same.com')
+  ];
+  assert.deepEqual(sortTabIdsByUrl(tabs), [10, 20, 30]);
+});
+
+test('sortTabIdsByUrl: case-sensitive comparison', () => {
+  // Uppercase letters sort before lowercase in raw string compare.
+  const tabs = [
+    tabU(1, 'https://github.com/a'),
+    tabU(2, 'https://github.com/B'),
+    tabU(3, 'https://github.com/A')
+  ];
+  // ASCII order: 'A' (65) < 'B' (66) < 'a' (97)
+  assert.deepEqual(sortTabIdsByUrl(tabs), [3, 2, 1]);
+});
