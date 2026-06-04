@@ -61,6 +61,34 @@
       <h2>Reset</h2>
       <button id="reset" type="button">Reset all settings</button>
     </section>
+
+    <section id="domain-colors-section">
+      <h2>Domain color overrides</h2>
+      <p class="hint">Override the assigned color for specific domains. Built-in defaults are shown below — your overrides take precedence.</p>
+
+      <div id="domain-colors-list"></div>
+
+      <div class="add-override-row">
+        <input type="text" id="new-override-domain" placeholder="example.com" />
+        <select id="new-override-color">
+          <option value="grey">grey</option>
+          <option value="blue">blue</option>
+          <option value="red">red</option>
+          <option value="yellow">yellow</option>
+          <option value="green">green</option>
+          <option value="pink">pink</option>
+          <option value="purple">purple</option>
+          <option value="cyan">cyan</option>
+          <option value="orange">orange</option>
+        </select>
+        <button id="add-override" type="button">Add</button>
+      </div>
+
+      <details id="domain-color-presets">
+        <summary>Built-in defaults</summary>
+        <div id="presets-list"></div>
+      </details>
+    </section>
   </main>
   <script type="module" src="src/options.js"></script>
 </body>

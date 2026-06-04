@@ -30,3 +30,40 @@ button {
   background: #f3f3f3; border: 1px solid #ccc; border-radius: 4px;
 }
 button:hover { background: #ebebeb; }
+
+.hint { color: #666; font-size: 12px; margin: 0 0 12px; }
+#domain-colors-list { margin-bottom: 12px; }
+.override-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 30px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+.override-row .domain { font-family: ui-monospace, monospace; font-size: 13px; }
+.override-row button { padding: 2px 6px; font-size: 12px; }
+.add-override-row {
+  display: grid;
+  grid-template-columns: 1fr 120px auto;
+  gap: 8px;
+  align-items: center;
+}
+#domain-color-presets summary { cursor: pointer; color: #444; font-size: 12px; margin-top: 12px; }
+#presets-list {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.preset-entry {
+  display: inline-block;
+  margin-right: 12px;
+}
+.preset-entry .color-chip {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 4px;
+}
