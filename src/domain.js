@@ -37,3 +37,29 @@ export function paletteColor(index) {
   const i = ((index % COLORS.length) + COLORS.length) % COLORS.length;
   return COLORS[i];
 }
+
+export const PRESETS = Object.freeze({
+  'github.com': 'grey',
+  'youtube.com': 'red',
+  'google.com': 'blue',
+  'gmail.com': 'red',
+  'twitter.com': 'cyan',
+  'x.com': 'grey',
+  'reddit.com': 'orange',
+  'stackoverflow.com': 'orange',
+  'linkedin.com': 'blue',
+  'facebook.com': 'blue',
+  'amazon.com': 'orange',
+  'apple.com': 'grey',
+  'wikipedia.org': 'grey',
+  'ycombinator.com': 'orange',
+  'notion.so': 'grey',
+  'figma.com': 'purple',
+  'linear.app': 'purple',
+  'atlassian.net': 'blue',
+  'slack.com': 'purple',
+  'discord.com': 'purple',
+  'spotify.com': 'green',
+  'netflix.com': 'red',
+  'twitch.tv': 'purple'
+});
