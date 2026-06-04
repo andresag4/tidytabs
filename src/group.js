@@ -52,23 +52,55 @@ export async function collectGroupableTabs(windowId) {
   return tabs;
 }
 
-export async function applyGroups(buckets, settings, windowId) {
-  const domains = [...buckets.keys()].sort(); // stable order for palette indexing
+export async function applyGroups(buckets, settings, windowId, opts = {}) {
+  const mergeMode = opts.mergeMode === true;
+  const domains = [...buckets.keys()].sort();
+
+  let existingGroupSnapshots = null;
+  if (mergeMode) {
+    const groups = await chrome.tabGroups.query({ windowId });
+    const allTabs = await chrome.tabs.query({ windowId });
+    existingGroupSnapshots = groups.map(g => {
+      const members = allTabs.filter(t => t.groupId === g.id);
+      return {
+        id: g.id,
+        title: g.title || '',
+        collapsed: g.collapsed,
+        leftmostIndex: members.length ? Math.min(...members.map(t => t.index)) : Infinity
+      };
+    });
+  }
+
   let paletteIndex = 0;
   for (const domain of domains) {
     const tabs = buckets.get(domain);
     const tabIds = tabs.map(t => t.id);
-    const groupId = await chrome.tabs.group({
-      tabIds,
-      createProperties: { windowId }
-    });
-    const color = pickGroupColor(domain, paletteIndex, settings);
-    await chrome.tabGroups.update(groupId, {
-      title: prettyName(domain),
-      color,
-      collapsed: settings.autoCollapse === true
-    });
-    paletteIndex++;
+    const title = prettyName(domain);
+
+    let mergedIntoId = null;
+    if (mergeMode && existingGroupSnapshots) {
+      mergedIntoId = findMergeTarget(existingGroupSnapshots, title);
+    }
+
+    if (mergedIntoId !== null) {
+      await chrome.tabs.group({ tabIds, groupId: mergedIntoId });
+      const snap = existingGroupSnapshots.find(s => s.id === mergedIntoId);
+      if (settings.autoCollapse === true && snap && snap.collapsed) {
+        await chrome.tabGroups.update(mergedIntoId, { collapsed: true });
+      }
+    } else {
+      const groupId = await chrome.tabs.group({
+        tabIds,
+        createProperties: { windowId }
+      });
+      const color = pickGroupColor(domain, paletteIndex, settings);
+      await chrome.tabGroups.update(groupId, {
+        title,
+        color,
+        collapsed: settings.autoCollapse === true
+      });
+      paletteIndex++;
+    }
   }
 }
 
@@ -127,7 +159,7 @@ export function findMergeTarget(existingGroups, title) {
   return best === null ? null : best.id;
 }
 
-export async function runTriage(settings) {
+export async function runTriage(settings, opts = {}) {
   const windowIds = [];
   if (settings.scope === 'all') {
     const wins = await chrome.windows.getAll({ populate: false });
@@ -140,7 +172,7 @@ export async function runTriage(settings) {
   for (const windowId of windowIds) {
     const tabs = await collectGroupableTabs(windowId);
     const buckets = bucketByDomain(tabs, settings.domainThreshold);
-    await applyGroups(buckets, settings, windowId);
+    await applyGroups(buckets, settings, windowId, opts);
     await reorderWindow(windowId, settings);
   }
 }
