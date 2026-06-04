@@ -74,13 +74,15 @@ import { pickGroupColor } from '../src/group.js';
 import { hashColor, paletteColor, COLORS } from '../src/domain.js';
 
 test('pickGroupColor: stable-hash uses hashColor', () => {
-  const color = pickGroupColor('github.com', 0, { colorStrategy: 'stable-hash' });
-  assert.equal(color, hashColor('github.com'));
+  // Use a domain not in PRESETS so stable-hash falls through to hashColor
+  const color = pickGroupColor('example.com', 0, { colorStrategy: 'stable-hash', domainColors: {} });
+  assert.equal(color, hashColor('example.com'));
 });
 
 test('pickGroupColor: palette uses paletteColor by index', () => {
+  // Use a domain not in PRESETS so palette strategy is reached
   assert.equal(
-    pickGroupColor('github.com', 2, { colorStrategy: 'palette' }),
+    pickGroupColor('example.com', 2, { colorStrategy: 'palette', domainColors: {} }),
     paletteColor(2)
   );
 });
@@ -169,4 +171,33 @@ test('findMergeTarget: case-sensitive', () => {
 
 test('findMergeTarget: empty input returns null', () => {
   assert.equal(findMergeTarget([], 'Github'), null);
+});
+
+test('pickGroupColor: user override wins over preset', () => {
+  const settings = {
+    colorStrategy: 'stable-hash',
+    domainColors: { 'github.com': 'blue' }
+  };
+  assert.equal(pickGroupColor('github.com', 0, settings), 'blue');
+});
+
+test('pickGroupColor: preset wins over strategy', () => {
+  const settings = { colorStrategy: 'stable-hash', domainColors: {} };
+  // github.com preset is grey
+  assert.equal(pickGroupColor('github.com', 0, settings), 'grey');
+});
+
+test('pickGroupColor: strategy fallback when no override and no preset', () => {
+  const settings = { colorStrategy: 'palette', domainColors: {} };
+  // For an unknown domain, palette index 2 should map deterministically
+  assert.equal(pickGroupColor('unknown.example.org', 2, settings), paletteColor(2));
+});
+
+test('pickGroupColor: ignores override with invalid color', () => {
+  const settings = {
+    colorStrategy: 'stable-hash',
+    domainColors: { 'github.com': 'bogus' }
+  };
+  // Invalid override → falls through to preset (grey)
+  assert.equal(pickGroupColor('github.com', 0, settings), 'grey');
 });

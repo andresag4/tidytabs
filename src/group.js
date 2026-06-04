@@ -1,4 +1,4 @@
-import { extractDomain, COLORS, hashColor, paletteColor, prettyName } from './domain.js';
+import { extractDomain, COLORS, hashColor, paletteColor, prettyName, PRESETS } from './domain.js';
 import { bucketByTicket } from './ticket.js';
 
 export const TAB_GROUP_ID_NONE = -1;
@@ -20,6 +20,14 @@ export function bucketByDomain(tabs, threshold) {
 }
 
 export function pickGroupColor(domain, paletteIndex, settings) {
+  const overrides = (settings && settings.domainColors) || {};
+  const override = overrides[domain];
+  if (override && COLORS.includes(override)) {
+    return override;
+  }
+  if (PRESETS[domain]) {
+    return PRESETS[domain];
+  }
   switch (settings.colorStrategy) {
     case 'random':
       return COLORS[Math.floor(Math.random() * COLORS.length)];
