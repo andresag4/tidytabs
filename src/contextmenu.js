@@ -28,6 +28,7 @@ export function filterTabIdsByDomain(tabs, targetDomain) {
 }
 
 const MENU_ID = 'tidytabs.copyDomainUrls';
+const RELOAD_MENU_ID = 'tidytabs.reloadDomain';
 const MERGE_MENU_ID = 'tidytabs.triageMerge';
 
 export function register() {
@@ -35,6 +36,11 @@ export function register() {
     chrome.contextMenus.create({
       id: MENU_ID,
       title: 'Copy URLs for this domain',
+      contexts: ['action']
+    });
+    chrome.contextMenus.create({
+      id: RELOAD_MENU_ID,
+      title: 'Force reload all tabs with this domain',
       contexts: ['action']
     });
     chrome.contextMenus.create({
@@ -54,6 +60,9 @@ async function handleClick(info) {
   if (info.menuItemId === MENU_ID) {
     return handleCopyUrls();
   }
+  if (info.menuItemId === RELOAD_MENU_ID) {
+    return handleReloadDomain();
+  }
   if (info.menuItemId === MERGE_MENU_ID) {
     return handleTriageMerge();
   }
@@ -71,6 +80,26 @@ async function handleCopyUrls() {
     await copyText(urls.join('\n'));
   } catch (e) {
     console.error('tidytabs: copy-domain-urls failed', e);
+  }
+}
+
+async function handleReloadDomain() {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!activeTab || !activeTab.url) return;
+    const domain = extractDomain(activeTab.url);
+    if (!domain) return;
+    const allTabs = await chrome.tabs.query({});
+    const tabIds = filterTabIdsByDomain(allTabs, domain);
+    for (const id of tabIds) {
+      try {
+        await chrome.tabs.reload(id, { bypassCache: true });
+      } catch (e) {
+        console.error('tidytabs: reload failed for tab', id, e);
+      }
+    }
+  } catch (e) {
+    console.error('tidytabs: force-reload-domain failed', e);
   }
 }
 
