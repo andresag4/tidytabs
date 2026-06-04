@@ -1,6 +1,6 @@
 import { extractDomain, prettyName } from './domain.js';
 import { copyText } from './clipboard.js';
-import { runTriage } from './group.js';
+import { runTriage, runTicketTriage } from './group.js';
 import { getSettings } from './settings.js';
 
 export function filterTabsByDomain(tabs, targetDomain) {
@@ -60,6 +60,7 @@ const SORT_ALL_URL_MENU_ID = 'tidytabs.sortAllGroupsByUrl';
 const SORT_ALL_AGE_MENU_ID = 'tidytabs.sortAllGroupsByAge';
 const COLLAPSE_ALL_MENU_ID = 'tidytabs.collapseAllGroups';
 const EXPAND_ALL_MENU_ID = 'tidytabs.expandAllGroups';
+const TICKET_TRIAGE_MENU_ID = 'tidytabs.ticketTriage';
 const TAB_MOVE_TO_GROUP_MENU_ID = 'tidytabs.tabMoveToDomainGroup';
 const TAB_CLOSE_OTHERS_MENU_ID = 'tidytabs.tabCloseOthersOnDomain';
 
@@ -131,6 +132,14 @@ export function register() {
       title: 'Expand all groups',
       contexts: ['action']
     });
+    chrome.contextMenus.create({
+      id: 'tidytabs.sep4', type: 'separator', contexts: ['action']
+    });
+    chrome.contextMenus.create({
+      id: TICKET_TRIAGE_MENU_ID,
+      title: 'Group by Jira ticket',
+      contexts: ['action']
+    });
 
     // Tab strip right-click menu — separate surface
     chrome.contextMenus.create({
@@ -163,6 +172,7 @@ async function handleClick(info, tab) {
     case SORT_ALL_AGE_MENU_ID: return handleSortAllGroupsByAge();
     case COLLAPSE_ALL_MENU_ID: return handleCollapseOrExpandAll(true);
     case EXPAND_ALL_MENU_ID: return handleCollapseOrExpandAll(false);
+    case TICKET_TRIAGE_MENU_ID: return handleTicketTriage();
     case TAB_MOVE_TO_GROUP_MENU_ID: return handleTabMoveToDomainGroup(tab);
     case TAB_CLOSE_OTHERS_MENU_ID: return handleTabCloseOthersOnDomain(tab);
   }
@@ -295,6 +305,15 @@ async function sortAllGroups(sortFn) {
     }
   } catch (e) {
     console.error('tidytabs: sort-all-groups failed', e);
+  }
+}
+
+async function handleTicketTriage() {
+  try {
+    const settings = await getSettings();
+    await runTicketTriage(settings);
+  } catch (e) {
+    console.error('tidytabs: ticket-triage failed', e);
   }
 }
 
