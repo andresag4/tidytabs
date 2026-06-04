@@ -1,4 +1,5 @@
 import { extractDomain, COLORS, hashColor, paletteColor, prettyName } from './domain.js';
+import { bucketByTicket } from './ticket.js';
 
 export const TAB_GROUP_ID_NONE = -1;
 
@@ -157,6 +158,51 @@ export function findMergeTarget(existingGroups, title) {
     }
   }
   return best === null ? null : best.id;
+}
+
+export async function runTicketTriage(settings) {
+  const windowIds = [];
+  if (settings.scope === 'all') {
+    const wins = await chrome.windows.getAll({ populate: false });
+    for (const w of wins) windowIds.push(w.id);
+  } else {
+    const w = await chrome.windows.getCurrent();
+    windowIds.push(w.id);
+  }
+
+  for (const windowId of windowIds) {
+    const allTabs = await chrome.tabs.query({ windowId });
+    const eligible = allTabs.filter(t => {
+      if (t.pinned) return false;
+      if (typeof t.url !== 'string') return false;
+      if (!t.url.startsWith('http://') && !t.url.startsWith('https://')) return false;
+      return true;
+    });
+
+    const buckets = bucketByTicket(eligible);
+    if (buckets.size === 0) continue;
+
+    // Snapshot existing ticket-titled groups for merge-into-existing semantics.
+    const existingGroups = await chrome.tabGroups.query({ windowId });
+
+    for (const [ticketId, tabsInBucket] of buckets) {
+      const tabIds = tabsInBucket.map(t => t.id);
+      const existing = existingGroups.find(g => g.title === ticketId);
+      if (existing) {
+        await chrome.tabs.group({ tabIds, groupId: existing.id });
+      } else {
+        const newGroupId = await chrome.tabs.group({
+          tabIds,
+          createProperties: { windowId }
+        });
+        await chrome.tabGroups.update(newGroupId, {
+          title: ticketId,
+          color: hashColor(ticketId),
+          collapsed: settings.autoCollapse === true
+        });
+      }
+    }
+  }
 }
 
 export async function runTriage(settings, opts = {}) {
