@@ -9,7 +9,8 @@ test('DEFAULTS: matches spec', () => {
     domainThreshold: 3,
     autoCollapse: true,
     colorStrategy: 'stable-hash',
-    scope: 'current'
+    scope: 'current',
+    domainColors: {}
   });
 });
 
@@ -42,4 +43,33 @@ test('applyDefaults: out-of-range threshold clamps to range', () => {
   assert.equal(applyDefaults({ domainThreshold: 1 }).domainThreshold, 2);
   assert.equal(applyDefaults({ domainThreshold: 10 }).domainThreshold, 5);
   assert.equal(applyDefaults({ domainThreshold: 'bogus' }).domainThreshold, 3);
+});
+
+test('DEFAULTS: includes domainColors empty object', () => {
+  assert.deepEqual(DEFAULTS.domainColors, {});
+});
+
+test('applyDefaults: valid domainColors entries preserved', () => {
+  const r = applyDefaults({ domainColors: { 'github.com': 'blue', 'youtube.com': 'green' } });
+  assert.deepEqual(r.domainColors, { 'github.com': 'blue', 'youtube.com': 'green' });
+});
+
+test('applyDefaults: invalid color values dropped', () => {
+  const r = applyDefaults({ domainColors: { 'github.com': 'bogus', 'youtube.com': 'red' } });
+  assert.deepEqual(r.domainColors, { 'youtube.com': 'red' });
+});
+
+test('applyDefaults: empty domain keys dropped', () => {
+  const r = applyDefaults({ domainColors: { '': 'red', 'github.com': 'blue' } });
+  assert.deepEqual(r.domainColors, { 'github.com': 'blue' });
+});
+
+test('applyDefaults: non-object domainColors becomes empty', () => {
+  assert.deepEqual(applyDefaults({ domainColors: 'not an object' }).domainColors, {});
+  assert.deepEqual(applyDefaults({ domainColors: null }).domainColors, {});
+});
+
+test('applyDefaults: domainColors absent → defaults to empty object', () => {
+  const r = applyDefaults({ groupOrder: 'leftmost' });
+  assert.deepEqual(r.domainColors, {});
 });

@@ -1,10 +1,13 @@
+import { COLORS } from './domain.js';
+
 export const DEFAULTS = Object.freeze({
   groupOrder: 'leftmost',
   ungroupedPlacement: 'end',
   domainThreshold: 3,
   autoCollapse: true,
   colorStrategy: 'stable-hash',
-  scope: 'current'
+  scope: 'current',
+  domainColors: {}
 });
 
 const ENUMS = {
@@ -33,6 +36,19 @@ export function applyDefaults(raw) {
     if (key === 'domainThreshold') {
       const n = Number(value);
       if (Number.isFinite(n)) out[key] = Math.min(5, Math.max(2, Math.round(n)));
+      continue;
+    }
+    if (key === 'domainColors') {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const cleaned = {};
+        for (const [domain, color] of Object.entries(value)) {
+          const dom = typeof domain === 'string' ? domain.trim() : '';
+          if (!dom) continue;
+          if (!COLORS.includes(color)) continue;
+          cleaned[dom] = color;
+        }
+        out[key] = cleaned;
+      }
       continue;
     }
   }
