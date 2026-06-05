@@ -1,4 +1,12 @@
-import { extractDomain, prettyName } from './domain.js';
+// This file used to register chrome.contextMenus items, but Chrome doesn't
+// support contexts: ['tab'] (Firefox-only). All actions now live in the popup
+// (popup.html / src/popup.js → src/actions.js).
+//
+// The pure helpers below are still imported by src/actions.js and exercised
+// by test/contextmenu.test.js — they stay here because moving them would
+// break the test import path.
+
+import { extractDomain } from './domain.js';
 
 export function filterTabsByDomain(tabs, targetDomain) {
   if (!targetDomain) return [];
@@ -45,64 +53,4 @@ export function sortTabIdsByAge(tabs) {
     return a.i - b.i;
   });
   return indexed.map(x => x.t.id);
-}
-
-const TAB_MOVE_TO_GROUP_MENU_ID = 'tidytabs.tabMoveToDomainGroup';
-const TAB_CLOSE_OTHERS_MENU_ID = 'tidytabs.tabCloseOthersOnDomain';
-
-export function register() {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: TAB_MOVE_TO_GROUP_MENU_ID,
-      title: 'Move tab to its domain group',
-      contexts: ['tab']
-    });
-    chrome.contextMenus.create({
-      id: TAB_CLOSE_OTHERS_MENU_ID,
-      title: 'Close all other tabs on this domain',
-      contexts: ['tab']
-    });
-  });
-
-  if (!register._listenerInstalled) {
-    chrome.contextMenus.onClicked.addListener(handleClick);
-    register._listenerInstalled = true;
-  }
-}
-
-async function handleClick(info, tab) {
-  if (info.menuItemId === TAB_MOVE_TO_GROUP_MENU_ID) return handleTabMoveToDomainGroup(tab);
-  if (info.menuItemId === TAB_CLOSE_OTHERS_MENU_ID) return handleTabCloseOthersOnDomain(tab);
-}
-
-async function handleTabMoveToDomainGroup(tab) {
-  try {
-    if (!tab || !tab.url) return;
-    const domain = extractDomain(tab.url);
-    if (!domain) return;
-    const title = prettyName(domain);
-    const groups = await chrome.tabGroups.query({ windowId: tab.windowId });
-    const match = groups.find(g => g.title === title);
-    if (!match) return;
-    await chrome.tabs.group({ tabIds: [tab.id], groupId: match.id });
-  } catch (e) {
-    console.error('tidytabs: tab-move-to-domain-group failed', e);
-  }
-}
-
-async function handleTabCloseOthersOnDomain(tab) {
-  try {
-    if (!tab || !tab.url) return;
-    const domain = extractDomain(tab.url);
-    if (!domain) return;
-    const allTabs = await chrome.tabs.query({});
-    const toClose = allTabs
-      .filter(t => t.id !== tab.id)
-      .filter(t => typeof t.url === 'string' && extractDomain(t.url) === domain)
-      .map(t => t.id);
-    if (toClose.length === 0) return;
-    await chrome.tabs.remove(toClose);
-  } catch (e) {
-    console.error('tidytabs: tab-close-others-on-domain failed', e);
-  }
 }

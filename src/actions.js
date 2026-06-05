@@ -195,3 +195,37 @@ export async function handleTogglePasswordVisibility() {
     console.error('tidytabs: toggle-password-visibility failed', e);
   }
 }
+
+export async function handleMoveActiveTabToDomainGroup() {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!activeTab || !activeTab.url) return;
+    const domain = extractDomain(activeTab.url);
+    if (!domain) return;
+    const title = prettyName(domain);
+    const groups = await chrome.tabGroups.query({ windowId: activeTab.windowId });
+    const match = groups.find(g => g.title === title);
+    if (!match) return;
+    await chrome.tabs.group({ tabIds: [activeTab.id], groupId: match.id });
+  } catch (e) {
+    console.error('tidytabs: move-active-tab-to-domain-group failed', e);
+  }
+}
+
+export async function handleCloseOthersOnActiveTabDomain() {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!activeTab || !activeTab.url) return;
+    const domain = extractDomain(activeTab.url);
+    if (!domain) return;
+    const allTabs = await chrome.tabs.query({});
+    const toClose = allTabs
+      .filter(t => t.id !== activeTab.id)
+      .filter(t => typeof t.url === 'string' && extractDomain(t.url) === domain)
+      .map(t => t.id);
+    if (toClose.length === 0) return;
+    await chrome.tabs.remove(toClose);
+  } catch (e) {
+    console.error('tidytabs: close-others-on-active-tab-domain failed', e);
+  }
+}

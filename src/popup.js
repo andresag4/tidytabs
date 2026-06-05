@@ -13,6 +13,8 @@ const ACTION_MAP = {
   'sort-all-age': actions.handleSortAllGroupsByAge,
   'collapse-all': () => actions.handleCollapseOrExpandAll(true),
   'expand-all': () => actions.handleCollapseOrExpandAll(false),
+  'move-active-tab-to-group': actions.handleMoveActiveTabToDomainGroup,
+  'close-others-on-domain': actions.handleCloseOthersOnActiveTabDomain,
   'toggle-passwords': actions.handleTogglePasswordVisibility
 };
 
