@@ -61,6 +61,7 @@ const SORT_ALL_AGE_MENU_ID = 'tidytabs.sortAllGroupsByAge';
 const COLLAPSE_ALL_MENU_ID = 'tidytabs.collapseAllGroups';
 const EXPAND_ALL_MENU_ID = 'tidytabs.expandAllGroups';
 const TICKET_TRIAGE_MENU_ID = 'tidytabs.ticketTriage';
+const PASSWORD_TOGGLE_MENU_ID = 'tidytabs.togglePasswordVisibility';
 const TAB_MOVE_TO_GROUP_MENU_ID = 'tidytabs.tabMoveToDomainGroup';
 const TAB_CLOSE_OTHERS_MENU_ID = 'tidytabs.tabCloseOthersOnDomain';
 
@@ -140,6 +141,14 @@ export function register() {
       title: 'Group by Jira ticket',
       contexts: ['action']
     });
+    chrome.contextMenus.create({
+      id: 'tidytabs.sep5', type: 'separator', contexts: ['action']
+    });
+    chrome.contextMenus.create({
+      id: PASSWORD_TOGGLE_MENU_ID,
+      title: 'Toggle password visibility on this tab',
+      contexts: ['action']
+    });
 
     // Tab strip right-click menu — separate surface
     chrome.contextMenus.create({
@@ -173,6 +182,7 @@ async function handleClick(info, tab) {
     case COLLAPSE_ALL_MENU_ID: return handleCollapseOrExpandAll(true);
     case EXPAND_ALL_MENU_ID: return handleCollapseOrExpandAll(false);
     case TICKET_TRIAGE_MENU_ID: return handleTicketTriage();
+    case PASSWORD_TOGGLE_MENU_ID: return handleTogglePasswordVisibility();
     case TAB_MOVE_TO_GROUP_MENU_ID: return handleTabMoveToDomainGroup(tab);
     case TAB_CLOSE_OTHERS_MENU_ID: return handleTabCloseOthersOnDomain(tab);
   }
@@ -314,6 +324,36 @@ async function handleTicketTriage() {
     await runTicketTriage(settings);
   } catch (e) {
     console.error('tidytabs: ticket-triage failed', e);
+  }
+}
+
+async function handleTogglePasswordVisibility() {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (!activeTab || !activeTab.id) return;
+    if (typeof activeTab.url !== 'string' || !/^https?:\/\//.test(activeTab.url)) return;
+
+    await chrome.scripting.executeScript({
+      target: { tabId: activeTab.id },
+      func: () => {
+        const passwords = document.querySelectorAll('input[type="password"]');
+        if (passwords.length > 0) {
+          passwords.forEach(i => {
+            i.type = 'text';
+            i.setAttribute('data-tidytabs-was-password', 'true');
+          });
+          return { revealed: passwords.length, restored: 0 };
+        }
+        const previouslyRevealed = document.querySelectorAll('input[data-tidytabs-was-password]');
+        previouslyRevealed.forEach(i => {
+          i.type = 'password';
+          i.removeAttribute('data-tidytabs-was-password');
+        });
+        return { revealed: 0, restored: previouslyRevealed.length };
+      }
+    });
+  } catch (e) {
+    console.error('tidytabs: toggle-password-visibility failed', e);
   }
 }
 
