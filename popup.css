@@ -1,31 +1,60 @@
 * { box-sizing: border-box; }
+
+:root {
+  --bg: #fafafa;
+  --bg-header: #ffffff;
+  --bg-hover: #ececec;
+  --bg-active: #dddddd;
+  --border: #eeeeee;
+  --text: #222222;
+  --text-muted: #888888;
+  --text-link: #555555;
+  --text-link-hover: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --bg-header: #242426;
+    --bg-hover: #2c2c2f;
+    --bg-active: #38383b;
+    --border: #2d2d30;
+    --text: #ececec;
+    --text-muted: #8d8d92;
+    --text-link: #c1c1c5;
+    --text-link-hover: #ffffff;
+  }
+}
+
 html, body {
   margin: 0;
   padding: 0;
   font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #222;
-  background: #fafafa;
+  color: var(--text);
+  background: var(--bg);
 }
 body { width: 300px; }
+
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  background: white;
-  border-bottom: 1px solid #eee;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
 }
 header .brand { font-weight: 600; font-size: 14px; }
 header a {
-  color: #555;
+  color: var(--text-link);
   text-decoration: none;
   font-size: 16px;
   padding: 0 4px;
 }
-header a:hover { color: #000; }
+header a:hover { color: var(--text-link-hover); }
+
 section {
   padding: 8px 12px 6px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
 }
 section:last-child { border-bottom: none; }
 section h2 {
@@ -33,9 +62,10 @@ section h2 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #888;
+  color: var(--text-muted);
   margin: 0 0 4px;
 }
+
 button {
   display: block;
   width: 100%;
@@ -48,5 +78,5 @@ button {
   cursor: pointer;
   border-radius: 4px;
 }
-button:hover { background: #ececec; }
-button:active { background: #ddd; }
+button:hover { background: var(--bg-hover); }
+button:active { background: var(--bg-active); }
