@@ -1,4 +1,6 @@
-const TICKET_RE = /\b[A-Z]{2,10}-\d{2,}\b/g;
+// Matches Jira-style (FE-3333, TIDYTABS-12) and GitHub-style (#1234) ticket IDs.
+// 2+ digits required on both to skip noise like FE-3 or #1.
+const TICKET_RE = /\b[A-Z]{2,10}-\d{2,}\b|#\d{2,}\b/g;
 
 export function extractTickets(title) {
   if (typeof title !== 'string') return [];

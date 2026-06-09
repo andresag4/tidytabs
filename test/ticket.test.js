@@ -47,9 +47,11 @@ test('extractTickets: non-string input → empty', () => {
 });
 
 test('extractTickets: ticket embedded in noisy title', () => {
+  // Note: GitHub-style #1234 also matches now after the regex extension —
+  // a PR title that references a Jira ticket commonly contains both IDs.
   assert.deepEqual(
     extractTickets('Fix login (FE-3333) by user · Pull Request #1234'),
-    ['FE-3333']
+    ['FE-3333', '#1234']
   );
 });
 
@@ -118,4 +120,61 @@ test('bucketByTicket: empty input → empty map', () => {
 test('bucketByTicket: all singletons → empty map', () => {
   const tabs = [tk(1, '[FE-3333] x'), tk(2, '[FE-3334] y')];
   assert.equal(bucketByTicket(tabs).size, 0);
+});
+
+// GitHub-style #NNNN ticket support
+test('extractTickets: matches GitHub-style #NNNN', () => {
+  assert.deepEqual(extractTickets('Fix login by user · Pull Request #1234'), ['#1234']);
+});
+
+test('extractTickets: GitHub-style requires 2+ digits', () => {
+  assert.deepEqual(extractTickets('see #1 too short'), []);
+  assert.deepEqual(extractTickets('issue #42 ok'), ['#42']);
+});
+
+test('extractTickets: matches both Jira and GitHub patterns in same title', () => {
+  assert.deepEqual(
+    extractTickets('[FE-3333] Fix login (#1234) · Pull Request'),
+    ['FE-3333', '#1234']
+  );
+});
+
+test('extractTickets: GitHub hash with letters does not match', () => {
+  assert.deepEqual(extractTickets('hashtag like #travel'), []);
+});
+
+test('extractTickets: GitHub digits-then-letters do not match (word-boundary)', () => {
+  assert.deepEqual(extractTickets('weird #1234abc thing'), []);
+});
+
+test('extractTickets: GitHub-style deduplicates', () => {
+  assert.deepEqual(
+    extractTickets('PR #1234 and again #1234'),
+    ['#1234']
+  );
+});
+
+test('bucketByTicket: groups by GitHub #NNNN across domains', () => {
+  const tabs = [
+    tk(1, 'Issue #1234: login bug'),       // imagine github.com tab
+    tk(2, 'PR #1234 - Fix login bug')      // imagine a duplicate or related PR
+  ];
+  const buckets = bucketByTicket(tabs);
+  assert.deepEqual(buckets.get('#1234').map(t => t.id), [1, 2]);
+});
+
+test('bucketByTicket: mixed Jira + GitHub clustering', () => {
+  const tabs = [
+    tk(1, '[FE-3333] Jira ticket'),
+    tk(2, '[FE-3333] PR #1234'),     // mentions both — goes to bigger cluster
+    tk(3, 'Another PR #1234')
+  ];
+  const buckets = bucketByTicket(tabs);
+  // FE-3333 candidates: [1, 2] (size 2)
+  // #1234 candidates: [2, 3] (size 2)
+  // tab 2 has both. Tie → lex-smaller wins. '#1234' < 'FE-3333' since '#' (35) < 'F' (70).
+  // So tab 2 goes to #1234. Then FE-3333 only has tab 1 → singleton → dropped.
+  // #1234 has [2, 3] → kept.
+  assert.deepEqual(buckets.get('#1234').map(t => t.id), [2, 3]);
+  assert.equal(buckets.has('FE-3333'), false);
 });
