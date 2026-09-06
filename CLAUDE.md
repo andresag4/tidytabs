@@ -43,7 +43,7 @@ Reload the extension after changes (popup/options reload on reopen; worker needs
 
 ## Nucleus context
 
-This is the **personal/tidytab** planet (galaxy m1, repo `~/projects/personal/tidytabs`,
+This is the **aegis/tidytab** planet (galaxy m1, repo `~/projects/aegis/tidytabs`,
 github `andresag4/tidytabs`). Session memory lives in
-`~/.nucleus/sessions/personal/tidytab/` — update the active session's `compact.md` at
+`~/.nucleus/sessions/aegis/tidytab/` — update the active session's `compact.md` at
 natural stopping points.
