@@ -6,23 +6,18 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <header>
-    <span class="brand">tidytabs</span>
-    <a href="#" id="open-settings" title="Open settings">⚙</a>
-  </header>
-
   <section>
     <h2>Triage</h2>
     <button data-action="tidy">✨ Tidy now</button>
     <button data-action="tidy-merge">⤵ Tidy + merge</button>
-    <button data-action="ticket-triage">🎫 By Jira ticket</button>
+    <button data-action="ticket-triage">🎫 By ticket ID</button>
   </section>
 
   <section>
     <h2>Group</h2>
     <button data-action="copy-group-urls">📋 Copy all URLs</button>
+    <button data-action="copy-group-domain-urls">🌐 Copy all domain URLs</button>
     <button data-action="reload-group">🔄 Force reload all tabs</button>
-    <button data-action="move-group-new-window">↗ Move to new window</button>
   </section>
 
   <section>

@@ -19,8 +19,11 @@ export function extractTickets(title) {
 
 // Tickets that share a tab title are linked (union-find), so tabs connected
 // through any shared ID land in one group titled with all its IDs,
-// e.g. "FE-3333 · #1234". Keys are group titles; groups need 2+ tabs.
+// e.g. "FE-3333 · #1234" (Jira IDs first). Keys are group titles; groups need 2+ tabs.
 export const TICKET_SEP = ' · ';
+
+// Stable: Jira IDs (FE-3333) before GitHub refs (#1234), first-seen order otherwise.
+const jiraFirst = (ids) => ids.sort((a, b) => (a[0] === '#') - (b[0] === '#'));
 
 export function bucketByTicket(tabs) {
   const parent = new Map();
@@ -46,7 +49,7 @@ export function bucketByTicket(tabs) {
 
   const out = new Map();
   for (const c of clusters.values()) {
-    if (c.tabs.length >= 2) out.set([...c.tickets].join(TICKET_SEP), c.tabs);
+    if (c.tabs.length >= 2) out.set(jiraFirst([...c.tickets]).join(TICKET_SEP), c.tabs);
   }
   return out;
 }

@@ -177,3 +177,8 @@ test('bucketByTicket: mixed Jira + GitHub clustering', () => {
   assert.deepEqual(buckets.get('FE-3333 · #1234').map(t => t.id), [1, 2, 3]);
   assert.equal(buckets.size, 1);
 });
+
+test('bucketByTicket: Jira IDs lead the title even when GitHub ref is seen first', () => {
+  const tabs = [tk(1, 'PR #1234'), tk(2, '[FE-3333] PR #1234')];
+  assert.deepEqual([...bucketByTicket(tabs).keys()], ['FE-3333 · #1234']);
+});

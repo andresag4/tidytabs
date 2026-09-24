@@ -54,17 +54,18 @@ export async function handleReloadDomain() {
   }
 }
 
-// Tabs of the active tab's group, in tab-strip order; [] when not in a group.
+// Active tab + its group's tabs in tab-strip order; tabs is [] when not in a group.
 async function activeGroupTabs() {
   const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (!activeTab || activeTab.groupId === undefined || activeTab.groupId === -1) return [];
+  if (!activeTab || activeTab.groupId === undefined || activeTab.groupId === -1) return { activeTab, tabs: [] };
   const tabs = await chrome.tabs.query({ groupId: activeTab.groupId });
-  return tabs.sort((a, b) => a.index - b.index);
+  return { activeTab, tabs: tabs.sort((a, b) => a.index - b.index) };
 }
 
 export async function handleCopyGroupUrls() {
   try {
-    const urls = (await activeGroupTabs()).map(t => t.url).filter(Boolean);
+    const { tabs } = await activeGroupTabs();
+    const urls = tabs.map(t => t.url).filter(Boolean);
     if (urls.length === 0) return;
     await copyText(urls.join('\n'));
   } catch (e) {
@@ -72,9 +73,24 @@ export async function handleCopyGroupUrls() {
   }
 }
 
+// Only the group's tabs that share the active tab's domain.
+export async function handleCopyGroupDomainUrls() {
+  try {
+    const { activeTab, tabs } = await activeGroupTabs();
+    const domain = activeTab && extractDomain(activeTab.url);
+    if (!domain) return;
+    const urls = filterTabsByDomain(tabs, domain);
+    if (urls.length === 0) return;
+    await copyText(urls.join('\n'));
+  } catch (e) {
+    console.error('tidytabs: copy-group-domain-urls failed', e);
+  }
+}
+
 export async function handleReloadGroup() {
   try {
-    await forceReload((await activeGroupTabs()).map(t => t.id));
+    const { tabs } = await activeGroupTabs();
+    await forceReload(tabs.map(t => t.id));
   } catch (e) {
     console.error('tidytabs: force-reload-group failed', e);
   }
@@ -86,34 +102,6 @@ export async function handleTriageMerge() {
     await runTriage(settings, { mergeMode: true });
   } catch (e) {
     console.error('tidytabs: triage-merge failed', e);
-  }
-}
-
-export async function handleMoveGroupToNewWindow() {
-  try {
-    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!activeTab) return;
-    const gid = activeTab.groupId;
-    if (gid === undefined || gid === -1) return;
-    const tabsInGroup = (await chrome.tabs.query({ groupId: gid })).sort((a, b) => a.index - b.index);
-    if (tabsInGroup.length === 0) return;
-    const groupInfo = await chrome.tabGroups.get(gid);
-    const tabIds = tabsInGroup.map(t => t.id);
-    const newWindow = await chrome.windows.create({ tabId: tabIds[0] });
-    if (tabIds.length > 1) {
-      await chrome.tabs.move(tabIds.slice(1), { windowId: newWindow.id, index: -1 });
-    }
-    const newGroupId = await chrome.tabs.group({
-      tabIds,
-      createProperties: { windowId: newWindow.id }
-    });
-    await chrome.tabGroups.update(newGroupId, {
-      title: groupInfo.title,
-      color: groupInfo.color,
-      collapsed: groupInfo.collapsed
-    });
-  } catch (e) {
-    console.error('tidytabs: move-group-to-new-window failed', e);
   }
 }
 

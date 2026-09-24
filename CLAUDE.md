@@ -24,7 +24,7 @@ runtime dependencies, plain ES modules — keep it that way unless there's a str
 ## Commands
 
 ```bash
-npm test                # node --test 'test/*.test.js' — 99 tests, must stay green
+npm test                # node --test 'test/*.test.js' — 100 tests, must stay green
 node scripts/generate-icons.js   # regenerate icons/
 ```
 
