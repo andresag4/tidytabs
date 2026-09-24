@@ -97,7 +97,7 @@ test('bucketByTicket: tickets chain transitively; unrelated tickets stay separat
     tk(5, 'BE-44 two')
   ];
   const buckets = bucketByTicket(tabs);
-  assert.deepEqual(buckets.get('FE-11 · FE-22 · #333').map(t => t.id), [1, 2, 3]);
+  assert.deepEqual(buckets.get('FE-11 · FE-22').map(t => t.id), [1, 2, 3]);
   assert.deepEqual(buckets.get('BE-44').map(t => t.id), [4, 5]);
   assert.equal(buckets.size, 2);
 });
@@ -174,11 +174,11 @@ test('bucketByTicket: mixed Jira + GitHub clustering', () => {
     tk(3, 'Another PR #1234')
   ];
   const buckets = bucketByTicket(tabs);
-  assert.deepEqual(buckets.get('FE-3333 · #1234').map(t => t.id), [1, 2, 3]);
+  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 2, 3]);
   assert.equal(buckets.size, 1);
 });
 
-test('bucketByTicket: Jira IDs lead the title even when GitHub ref is seen first', () => {
+test('bucketByTicket: GitHub refs are dropped from the title when a Jira ID exists', () => {
   const tabs = [tk(1, 'PR #1234'), tk(2, '[FE-3333] PR #1234')];
-  assert.deepEqual([...bucketByTicket(tabs).keys()], ['FE-3333 · #1234']);
+  assert.deepEqual([...bucketByTicket(tabs).keys()], ['FE-3333']);
 });
