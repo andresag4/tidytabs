@@ -31,26 +31,3 @@ export function filterTabIdsByDomain(tabs, targetDomain) {
   matching.sort((a, b) => (a.windowId - b.windowId) || (a.index - b.index));
   return matching.map(t => t.id);
 }
-
-export function sortTabIdsByUrl(tabs) {
-  const indexed = tabs.map((t, i) => ({ t, i }));
-  indexed.sort((a, b) => {
-    const ua = (a.t && typeof a.t.url === 'string') ? a.t.url : '';
-    const ub = (b.t && typeof b.t.url === 'string') ? b.t.url : '';
-    if (ua < ub) return -1;
-    if (ua > ub) return 1;
-    return a.i - b.i;
-  });
-  return indexed.map(x => x.t.id);
-}
-
-export function sortTabIdsByAge(tabs) {
-  const indexed = tabs.map((t, i) => ({ t, i }));
-  indexed.sort((a, b) => {
-    const la = (a.t && typeof a.t.lastAccessed === 'number') ? a.t.lastAccessed : 0;
-    const lb = (b.t && typeof b.t.lastAccessed === 'number') ? b.t.lastAccessed : 0;
-    if (la !== lb) return la - lb;
-    return a.i - b.i;
-  });
-  return indexed.map(x => x.t.id);
-}

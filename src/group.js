@@ -1,5 +1,5 @@
 import { extractDomain, COLORS, hashColor, paletteColor, prettyName, PRESETS } from './domain.js';
-import { bucketByTicket } from './ticket.js';
+import { bucketByTicket, extractTickets } from './ticket.js';
 
 export const TAB_GROUP_ID_NONE = -1;
 
@@ -193,19 +193,22 @@ export async function runTicketTriage(settings) {
     // Snapshot existing ticket-titled groups for merge-into-existing semantics.
     const existingGroups = await chrome.tabGroups.query({ windowId });
 
-    for (const [ticketId, tabsInBucket] of buckets) {
+    for (const [title, tabsInBucket] of buckets) {
       const tabIds = tabsInBucket.map(t => t.id);
-      const existing = existingGroups.find(g => g.title === ticketId);
+      const tickets = extractTickets(title);
+      // Merge into an existing group that shares any ticket; retitle to the full set.
+      const existing = existingGroups.find(g => extractTickets(g.title).some(t => tickets.includes(t)));
       if (existing) {
         await chrome.tabs.group({ tabIds, groupId: existing.id });
+        if (existing.title !== title) await chrome.tabGroups.update(existing.id, { title });
       } else {
         const newGroupId = await chrome.tabs.group({
           tabIds,
           createProperties: { windowId }
         });
         await chrome.tabGroups.update(newGroupId, {
-          title: ticketId,
-          color: hashColor(ticketId),
+          title,
+          color: hashColor(tickets[0]),
           collapsed: settings.autoCollapse === true
         });
       }

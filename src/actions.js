@@ -1,12 +1,10 @@
-import { extractDomain, prettyName } from './domain.js';
+import { extractDomain } from './domain.js';
 import { runTriage, runTicketTriage } from './group.js';
 import { getSettings } from './settings.js';
 import { copyText } from './clipboard.js';
 import {
   filterTabsByDomain,
-  filterTabIdsByDomain,
-  sortTabIdsByUrl,
-  sortTabIdsByAge
+  filterTabIdsByDomain
 } from './contextmenu.js';
 
 export async function handleTidy() {
@@ -33,6 +31,16 @@ export async function handleCopyUrls() {
   }
 }
 
+async function forceReload(tabIds) {
+  for (const id of tabIds) {
+    try {
+      await chrome.tabs.reload(id, { bypassCache: true });
+    } catch (e) {
+      console.error('tidytabs: reload failed for tab', id, e);
+    }
+  }
+}
+
 export async function handleReloadDomain() {
   try {
     const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -40,16 +48,35 @@ export async function handleReloadDomain() {
     const domain = extractDomain(activeTab.url);
     if (!domain) return;
     const allTabs = await chrome.tabs.query({});
-    const tabIds = filterTabIdsByDomain(allTabs, domain);
-    for (const id of tabIds) {
-      try {
-        await chrome.tabs.reload(id, { bypassCache: true });
-      } catch (e) {
-        console.error('tidytabs: reload failed for tab', id, e);
-      }
-    }
+    await forceReload(filterTabIdsByDomain(allTabs, domain));
   } catch (e) {
     console.error('tidytabs: force-reload-domain failed', e);
+  }
+}
+
+// Tabs of the active tab's group, in tab-strip order; [] when not in a group.
+async function activeGroupTabs() {
+  const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!activeTab || activeTab.groupId === undefined || activeTab.groupId === -1) return [];
+  const tabs = await chrome.tabs.query({ groupId: activeTab.groupId });
+  return tabs.sort((a, b) => a.index - b.index);
+}
+
+export async function handleCopyGroupUrls() {
+  try {
+    const urls = (await activeGroupTabs()).map(t => t.url).filter(Boolean);
+    if (urls.length === 0) return;
+    await copyText(urls.join('\n'));
+  } catch (e) {
+    console.error('tidytabs: copy-group-urls failed', e);
+  }
+}
+
+export async function handleReloadGroup() {
+  try {
+    await forceReload((await activeGroupTabs()).map(t => t.id));
+  } catch (e) {
+    console.error('tidytabs: force-reload-group failed', e);
   }
 }
 
@@ -59,38 +86,6 @@ export async function handleTriageMerge() {
     await runTriage(settings, { mergeMode: true });
   } catch (e) {
     console.error('tidytabs: triage-merge failed', e);
-  }
-}
-
-export async function handleSortGroupByUrl() {
-  try {
-    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!activeTab) return;
-    const gid = activeTab.groupId;
-    if (gid === undefined || gid === -1) return;
-    const tabsInGroup = await chrome.tabs.query({ groupId: gid });
-    if (tabsInGroup.length < 2) return;
-    const startIndex = Math.min(...tabsInGroup.map(t => t.index));
-    const sortedIds = sortTabIdsByUrl(tabsInGroup);
-    await chrome.tabs.move(sortedIds, { index: startIndex });
-  } catch (e) {
-    console.error('tidytabs: sort-group-by-url failed', e);
-  }
-}
-
-export async function handleSortGroupByAge() {
-  try {
-    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!activeTab) return;
-    const gid = activeTab.groupId;
-    if (gid === undefined || gid === -1) return;
-    const tabsInGroup = await chrome.tabs.query({ groupId: gid });
-    if (tabsInGroup.length < 2) return;
-    const startIndex = Math.min(...tabsInGroup.map(t => t.index));
-    const sortedIds = sortTabIdsByAge(tabsInGroup);
-    await chrome.tabs.move(sortedIds, { index: startIndex });
-  } catch (e) {
-    console.error('tidytabs: sort-group-by-age failed', e);
   }
 }
 
@@ -122,35 +117,13 @@ export async function handleMoveGroupToNewWindow() {
   }
 }
 
-async function sortAllGroups(sortFn) {
-  try {
-    const w = await chrome.windows.getCurrent();
-    const groups = await chrome.tabGroups.query({ windowId: w.id });
-    for (const g of groups) {
-      const tabs = await chrome.tabs.query({ groupId: g.id });
-      if (tabs.length < 2) continue;
-      const startIndex = Math.min(...tabs.map(t => t.index));
-      const sortedIds = sortFn(tabs);
-      await chrome.tabs.move(sortedIds, { index: startIndex });
-    }
-  } catch (e) {
-    console.error('tidytabs: sort-all-groups failed', e);
-  }
-}
-
-export async function handleSortAllGroupsByUrl() {
-  return sortAllGroups(sortTabIdsByUrl);
-}
-
-export async function handleSortAllGroupsByAge() {
-  return sortAllGroups(sortTabIdsByAge);
-}
-
 export async function handleCollapseOrExpandAll(collapsed) {
   try {
     const w = await chrome.windows.getCurrent();
+    const [activeTab] = await chrome.tabs.query({ active: true, windowId: w.id });
     const groups = await chrome.tabGroups.query({ windowId: w.id });
     for (const g of groups) {
+      if (activeTab && g.id === activeTab.groupId) continue; // leave the group we're in alone
       await chrome.tabGroups.update(g.id, { collapsed });
     }
   } catch (e) {
@@ -193,39 +166,5 @@ export async function handleTogglePasswordVisibility() {
     });
   } catch (e) {
     console.error('tidytabs: toggle-password-visibility failed', e);
-  }
-}
-
-export async function handleMoveActiveTabToDomainGroup() {
-  try {
-    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!activeTab || !activeTab.url) return;
-    const domain = extractDomain(activeTab.url);
-    if (!domain) return;
-    const title = prettyName(domain);
-    const groups = await chrome.tabGroups.query({ windowId: activeTab.windowId });
-    const match = groups.find(g => g.title === title);
-    if (!match) return;
-    await chrome.tabs.group({ tabIds: [activeTab.id], groupId: match.id });
-  } catch (e) {
-    console.error('tidytabs: move-active-tab-to-domain-group failed', e);
-  }
-}
-
-export async function handleCloseOthersOnActiveTabDomain() {
-  try {
-    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (!activeTab || !activeTab.url) return;
-    const domain = extractDomain(activeTab.url);
-    if (!domain) return;
-    const allTabs = await chrome.tabs.query({});
-    const toClose = allTabs
-      .filter(t => t.id !== activeTab.id)
-      .filter(t => typeof t.url === 'string' && extractDomain(t.url) === domain)
-      .map(t => t.id);
-    if (toClose.length === 0) return;
-    await chrome.tabs.remove(toClose);
-  } catch (e) {
-    console.error('tidytabs: close-others-on-active-tab-domain failed', e);
   }
 }

@@ -76,30 +76,34 @@ test('bucketByTicket: single-ticket tabs go to their ticket', () => {
   assert.equal(buckets.has('FE-3334'), false); // singleton dropped
 });
 
-test('bucketByTicket: multi-ticket tab joins largest cluster', () => {
+test('bucketByTicket: multi-ticket tab bridges clusters into one multi-ID group', () => {
   const tabs = [
     tk(1, '[FE-3333] PR A'),
     tk(2, '[FE-3333] Jira A'),
     tk(3, '[FE-3334] PR B'),
-    tk(4, '[FE-3333][FE-3334] Shared work') // should go to FE-3333 (cluster=3)
+    tk(4, '[FE-3333][FE-3334] Shared work')
   ];
   const buckets = bucketByTicket(tabs);
-  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 2, 4]);
-  assert.equal(buckets.has('FE-3334'), false); // FE-3334 ends up with just tab 3 → singleton dropped
+  assert.deepEqual([...buckets.keys()], ['FE-3333 · FE-3334']);
+  assert.deepEqual(buckets.get('FE-3333 · FE-3334').map(t => t.id), [1, 2, 3, 4]);
 });
 
-test('bucketByTicket: ties broken by lexicographic ticket ID', () => {
+test('bucketByTicket: tickets chain transitively; unrelated tickets stay separate', () => {
   const tabs = [
-    tk(1, '[FE-3333] one'),
-    tk(2, '[FE-3334] two'),
-    tk(3, '[FE-3333][FE-3334] both') // FE-3333 < FE-3334 lex, both have 1 candidate
+    tk(1, 'FE-11 and FE-22'),
+    tk(2, 'FE-22 and #333'),
+    tk(3, '#333 PR'),
+    tk(4, 'BE-44 one'),
+    tk(5, 'BE-44 two')
   ];
   const buckets = bucketByTicket(tabs);
-  // FE-3333 has candidates [1, 3]; FE-3334 has [2, 3]. Both size 2 initially.
-  // For tab 3: tie → goes to FE-3333 (lex smaller).
-  // Final: FE-3333 = [1, 3], FE-3334 = [2] singleton → dropped.
-  assert.deepEqual(buckets.get('FE-3333').map(t => t.id), [1, 3]);
-  assert.equal(buckets.has('FE-3334'), false);
+  assert.deepEqual(buckets.get('FE-11 · FE-22 · #333').map(t => t.id), [1, 2, 3]);
+  assert.deepEqual(buckets.get('BE-44').map(t => t.id), [4, 5]);
+  assert.equal(buckets.size, 2);
+});
+
+test('bucketByTicket: single tab with two tickets is still a singleton', () => {
+  assert.equal(bucketByTicket([tk(1, 'FE-11 FE-22')]).size, 0);
 });
 
 test('bucketByTicket: tabs with no tickets are not in any bucket', () => {
@@ -166,15 +170,10 @@ test('bucketByTicket: groups by GitHub #NNNN across domains', () => {
 test('bucketByTicket: mixed Jira + GitHub clustering', () => {
   const tabs = [
     tk(1, '[FE-3333] Jira ticket'),
-    tk(2, '[FE-3333] PR #1234'),     // mentions both — goes to bigger cluster
+    tk(2, '[FE-3333] PR #1234'),
     tk(3, 'Another PR #1234')
   ];
   const buckets = bucketByTicket(tabs);
-  // FE-3333 candidates: [1, 2] (size 2)
-  // #1234 candidates: [2, 3] (size 2)
-  // tab 2 has both. Tie → lex-smaller wins. '#1234' < 'FE-3333' since '#' (35) < 'F' (70).
-  // So tab 2 goes to #1234. Then FE-3333 only has tab 1 → singleton → dropped.
-  // #1234 has [2, 3] → kept.
-  assert.deepEqual(buckets.get('#1234').map(t => t.id), [2, 3]);
-  assert.equal(buckets.has('FE-3333'), false);
+  assert.deepEqual(buckets.get('FE-3333 · #1234').map(t => t.id), [1, 2, 3]);
+  assert.equal(buckets.size, 1);
 });

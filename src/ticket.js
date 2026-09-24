@@ -17,47 +17,36 @@ export function extractTickets(title) {
   return out;
 }
 
+// Tickets that share a tab title are linked (union-find), so tabs connected
+// through any shared ID land in one group titled with all its IDs,
+// e.g. "FE-3333 · #1234". Keys are group titles; groups need 2+ tabs.
+export const TICKET_SEP = ' · ';
+
 export function bucketByTicket(tabs) {
-  // Pass 1: candidate buckets — each tab in all of its tickets.
-  const candidates = new Map(); // ticketId → Tab[]
-  const tabTickets = new Map(); // tab.id → ticketId[]
+  const parent = new Map();
+  const find = (t) => { while (parent.get(t) !== t) t = parent.get(t); return t; };
+  const tagged = [];
   for (const tab of tabs) {
     const tickets = extractTickets(tab.title);
     if (tickets.length === 0) continue;
-    tabTickets.set(tab.id, tickets);
-    for (const t of tickets) {
-      if (!candidates.has(t)) candidates.set(t, []);
-      candidates.get(t).push(tab);
-    }
+    tagged.push([tab, tickets]);
+    for (const t of tickets) if (!parent.has(t)) parent.set(t, t);
+    const root = find(tickets[0]);
+    for (const t of tickets.slice(1)) parent.set(find(t), root);
   }
 
-  // Pass 2: resolve multi-ticket tabs to a single primary ticket.
-  const primary = new Map(); // ticketId → Tab[]
-  for (const tab of tabs) {
-    const tickets = tabTickets.get(tab.id);
-    if (!tickets || tickets.length === 0) continue;
-    if (tickets.length === 1) {
-      const t = tickets[0];
-      if (!primary.has(t)) primary.set(t, []);
-      primary.get(t).push(tab);
-      continue;
-    }
-    // Multi-ticket: pick largest cluster, ties → lex smallest.
-    let bestTicket = null, bestSize = -1;
-    for (const t of tickets) {
-      const size = candidates.get(t).length;
-      if (size > bestSize || (size === bestSize && t < bestTicket)) {
-        bestTicket = t;
-        bestSize = size;
-      }
-    }
-    if (!primary.has(bestTicket)) primary.set(bestTicket, []);
-    primary.get(bestTicket).push(tab);
+  const clusters = new Map(); // root → { tickets, tabs }
+  for (const [tab, tickets] of tagged) {
+    const root = find(tickets[0]);
+    if (!clusters.has(root)) clusters.set(root, { tickets: new Set(), tabs: [] });
+    const c = clusters.get(root);
+    for (const t of tickets) c.tickets.add(t);
+    c.tabs.push(tab);
   }
 
-  // Pass 3: drop buckets below threshold (< 2).
-  for (const [t, list] of primary) {
-    if (list.length < 2) primary.delete(t);
+  const out = new Map();
+  for (const c of clusters.values()) {
+    if (c.tabs.length >= 2) out.set([...c.tickets].join(TICKET_SEP), c.tabs);
   }
-  return primary;
+  return out;
 }

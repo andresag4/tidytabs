@@ -6,15 +6,11 @@ const ACTION_MAP = {
   'ticket-triage': actions.handleTicketTriage,
   'copy-urls': actions.handleCopyUrls,
   'reload-domain': actions.handleReloadDomain,
-  'sort-group-url': actions.handleSortGroupByUrl,
-  'sort-group-age': actions.handleSortGroupByAge,
+  'copy-group-urls': actions.handleCopyGroupUrls,
+  'reload-group': actions.handleReloadGroup,
   'move-group-new-window': actions.handleMoveGroupToNewWindow,
-  'sort-all-url': actions.handleSortAllGroupsByUrl,
-  'sort-all-age': actions.handleSortAllGroupsByAge,
   'collapse-all': () => actions.handleCollapseOrExpandAll(true),
   'expand-all': () => actions.handleCollapseOrExpandAll(false),
-  'move-active-tab-to-group': actions.handleMoveActiveTabToDomainGroup,
-  'close-others-on-domain': actions.handleCloseOthersOnActiveTabDomain,
   'toggle-passwords': actions.handleTogglePasswordVisibility
 };
 
