@@ -19,9 +19,9 @@ export function extractTickets(title) {
 
 // Tickets that share a tab title are linked (union-find), so tabs connected
 // through any shared ID land in one group, named by its Jira IDs
-// (e.g. "FE-3333 · FE-3334"), or its #NNNN refs if it has none.
+// (e.g. "FE-3333 | FE-3334"), or its #NNNN refs if it has none.
 // Keys are group titles; groups need 2+ tabs.
-export const TICKET_SEP = ' · ';
+export const TICKET_SEP = ' | ';
 
 // Title with Jira IDs only when any exist; GitHub #NNNN refs name the group only as a fallback.
 const titleIds = (ids) => {

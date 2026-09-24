@@ -84,8 +84,8 @@ test('bucketByTicket: multi-ticket tab bridges clusters into one multi-ID group'
     tk(4, '[FE-3333][FE-3334] Shared work')
   ];
   const buckets = bucketByTicket(tabs);
-  assert.deepEqual([...buckets.keys()], ['FE-3333 · FE-3334']);
-  assert.deepEqual(buckets.get('FE-3333 · FE-3334').map(t => t.id), [1, 2, 3, 4]);
+  assert.deepEqual([...buckets.keys()], ['FE-3333 | FE-3334']);
+  assert.deepEqual(buckets.get('FE-3333 | FE-3334').map(t => t.id), [1, 2, 3, 4]);
 });
 
 test('bucketByTicket: tickets chain transitively; unrelated tickets stay separate', () => {
@@ -97,7 +97,7 @@ test('bucketByTicket: tickets chain transitively; unrelated tickets stay separat
     tk(5, 'BE-44 two')
   ];
   const buckets = bucketByTicket(tabs);
-  assert.deepEqual(buckets.get('FE-11 · FE-22').map(t => t.id), [1, 2, 3]);
+  assert.deepEqual(buckets.get('FE-11 | FE-22').map(t => t.id), [1, 2, 3]);
   assert.deepEqual(buckets.get('BE-44').map(t => t.id), [4, 5]);
   assert.equal(buckets.size, 2);
 });
