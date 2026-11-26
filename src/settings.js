@@ -3,7 +3,7 @@ import { COLORS } from './domain.js';
 export const DEFAULTS = Object.freeze({
   groupOrder: 'leftmost',
   ungroupedPlacement: 'end',
-  domainThreshold: 3,
+  domainThreshold: 2,
   autoCollapse: true,
   colorStrategy: 'stable-hash',
   scope: 'current',

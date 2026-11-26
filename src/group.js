@@ -1,5 +1,5 @@
 import { extractDomain, COLORS, hashColor, paletteColor, prettyName, PRESETS } from './domain.js';
-import { bucketByTicket, extractTickets } from './ticket.js';
+import { bucketByTicket, extractTickets, ticketTitle } from './ticket.js';
 
 export const TAB_GROUP_ID_NONE = -1;
 
@@ -97,7 +97,7 @@ export async function applyGroups(buckets, settings, windowId, opts = {}) {
       if (settings.autoCollapse === true && snap && snap.collapsed) {
         await chrome.tabGroups.update(mergedIntoId, { collapsed: true });
       }
-    } else {
+    } else if (tabs.length >= settings.domainThreshold) {
       const groupId = await chrome.tabs.group({
         tabIds,
         createProperties: { windowId }
@@ -187,28 +187,39 @@ export async function runTicketTriage(settings) {
       return true;
     });
 
-    const buckets = bucketByTicket(eligible);
+    // Single tabs count too: they may join an existing ticket group; new groups need 2+.
+    const buckets = bucketByTicket(eligible, 1);
     if (buckets.size === 0) continue;
 
-    // Snapshot existing ticket-titled groups for merge-into-existing semantics.
-    const existingGroups = await chrome.tabGroups.query({ windowId });
+    // Existing ticket groups (title holds an ID), matched on every ID in the title or
+    // its tabs' titles, so a lone "PR #1234" tab finds the "FE-3333" group it belongs to.
+    const ticketGroups = (await chrome.tabGroups.query({ windowId }))
+      .filter(g => extractTickets(g.title).length > 0)
+      .map(g => ({
+        group: g,
+        ids: new Set([g.title, ...allTabs.filter(t => t.groupId === g.id).map(t => t.title)].flatMap(extractTickets))
+      }));
 
     for (const [title, tabsInBucket] of buckets) {
       const tabIds = tabsInBucket.map(t => t.id);
-      const tickets = extractTickets(title);
-      // Merge into an existing group that shares any ticket; retitle to the full set.
-      const existing = existingGroups.find(g => extractTickets(g.title).some(t => tickets.includes(t)));
-      if (existing) {
-        await chrome.tabs.group({ tabIds, groupId: existing.id });
-        if (existing.title !== title) await chrome.tabGroups.update(existing.id, { title });
-      } else {
+      const ids = tabsInBucket.flatMap(t => extractTickets(t.title));
+      const match = ticketGroups.find(e => ids.some(id => e.ids.has(id)));
+      if (match) {
+        await chrome.tabs.group({ tabIds, groupId: match.group.id });
+        const merged = ticketTitle([...extractTickets(match.group.title), ...ids]);
+        if (merged !== match.group.title) {
+          await chrome.tabGroups.update(match.group.id, { title: merged });
+          match.group.title = merged;
+        }
+        for (const id of ids) match.ids.add(id);
+      } else if (tabsInBucket.length >= 2) {
         const newGroupId = await chrome.tabs.group({
           tabIds,
           createProperties: { windowId }
         });
         await chrome.tabGroups.update(newGroupId, {
           title,
-          color: hashColor(tickets[0]),
+          color: hashColor(extractTickets(title)[0]),
           collapsed: settings.autoCollapse === true
         });
       }
@@ -228,7 +239,9 @@ export async function runTriage(settings, opts = {}) {
 
   for (const windowId of windowIds) {
     const tabs = await collectGroupableTabs(windowId);
-    const buckets = bucketByDomain(tabs, settings.domainThreshold);
+    // Merge mode buckets single tabs too: they may join an existing group; applyGroups
+    // still holds new groups to the threshold.
+    const buckets = bucketByDomain(tabs, opts.mergeMode === true ? 1 : settings.domainThreshold);
     await applyGroups(buckets, settings, windowId, opts);
     await reorderWindow(windowId, settings);
   }

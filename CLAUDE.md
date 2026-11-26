@@ -16,6 +16,7 @@ runtime dependencies, plain ES modules — keep it that way unless there's a str
   - `domain.js` — domain extraction + `prettyName` + group `COLORS`
   - `group.js` — the grouping engine (`runTriage`, `runTicketTriage`)
   - `ticket.js` — Jira/GitHub ticket-ID matching (2+ digits required to skip noise)
+  - `cleanup.js` — one-click cleanup plan: duplicate tabs to close, tabs to sleep (discard)
   - `settings.js` — `DEFAULTS` (frozen) + storage-backed get/set/reset
   - `clipboard.js` + `offscreen.js`/`offscreen.html` — MV3 clipboard writes need an
     offscreen document; that's the only reason offscreen exists
@@ -24,7 +25,7 @@ runtime dependencies, plain ES modules — keep it that way unless there's a str
 ## Commands
 
 ```bash
-npm test                # node --test 'test/*.test.js' — 100 tests, must stay green
+npm test                # node --test 'test/*.test.js' — 106 tests, must stay green
 node scripts/generate-icons.js   # regenerate icons/
 ```
 

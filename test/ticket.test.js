@@ -182,3 +182,17 @@ test('bucketByTicket: GitHub refs are dropped from the title when a Jira ID exis
   const tabs = [tk(1, 'PR #1234'), tk(2, '[FE-3333] PR #1234')];
   assert.deepEqual([...bucketByTicket(tabs).keys()], ['FE-3333']);
 });
+
+import { ticketTitle } from '../src/ticket.js';
+
+test('ticketTitle: Jira IDs only, deduped, joined with |', () => {
+  assert.equal(ticketTitle(['FE-11', '#123', 'FE-22', 'FE-11']), 'FE-11 | FE-22');
+});
+
+test('ticketTitle: falls back to GitHub refs when no Jira ID', () => {
+  assert.equal(ticketTitle(['#123', '#456']), '#123 | #456');
+});
+
+test('bucketByTicket: minTabs = 1 keeps single-tab clusters', () => {
+  assert.deepEqual([...bucketByTicket([tk(1, 'FE-11 x')], 1).keys()], ['FE-11']);
+});

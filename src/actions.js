@@ -2,6 +2,7 @@ import { extractDomain } from './domain.js';
 import { runTriage, runTicketTriage } from './group.js';
 import { getSettings } from './settings.js';
 import { copyText } from './clipboard.js';
+import { findDuplicateTabIds, findTabIdsToSleep } from './cleanup.js';
 import {
   filterTabsByDomain,
   filterTabIdsByDomain
@@ -51,6 +52,15 @@ export async function handleReloadDomain() {
     await forceReload(filterTabIdsByDomain(allTabs, domain));
   } catch (e) {
     console.error('tidytabs: force-reload-domain failed', e);
+  }
+}
+
+export async function handleReloadWindow() {
+  try {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    await forceReload(tabs.map(t => t.id));
+  } catch (e) {
+    console.error('tidytabs: force-reload-window failed', e);
   }
 }
 
@@ -105,20 +115,6 @@ export async function handleTriageMerge() {
   }
 }
 
-export async function handleCollapseOrExpandAll(collapsed) {
-  try {
-    const w = await chrome.windows.getCurrent();
-    const [activeTab] = await chrome.tabs.query({ active: true, windowId: w.id });
-    const groups = await chrome.tabGroups.query({ windowId: w.id });
-    for (const g of groups) {
-      if (activeTab && g.id === activeTab.groupId) continue; // leave the group we're in alone
-      await chrome.tabGroups.update(g.id, { collapsed });
-    }
-  } catch (e) {
-    console.error('tidytabs: collapse-or-expand-all failed', e);
-  }
-}
-
 export async function handleTicketTriage() {
   try {
     const settings = await getSettings();
@@ -154,5 +150,28 @@ export async function handleTogglePasswordVisibility() {
     });
   } catch (e) {
     console.error('tidytabs: toggle-password-visibility failed', e);
+  }
+}
+
+// One click, all windows: close duplicate tabs, then sleep (discard) what's left that's
+// in a collapsed group, on YouTube, or idle — freeing memory/CPU; tabs reload on click.
+export async function handleCleanup() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    const closeIds = findDuplicateTabIds(tabs);
+    if (closeIds.length) await chrome.tabs.remove(closeIds);
+
+    const closed = new Set(closeIds);
+    const collapsed = new Set((await chrome.tabGroups.query({ collapsed: true })).map(g => g.id));
+    const sleepIds = findTabIdsToSleep(tabs.filter(t => !closed.has(t.id)), collapsed, Date.now());
+    for (const id of sleepIds) {
+      try {
+        await chrome.tabs.discard(id);
+      } catch (e) {
+        console.error('tidytabs: discard failed for tab', id, e);
+      }
+    }
+  } catch (e) {
+    console.error('tidytabs: cleanup failed', e);
   }
 }

@@ -6,7 +6,7 @@ test('DEFAULTS: matches spec', () => {
   assert.deepEqual(DEFAULTS, {
     groupOrder: 'leftmost',
     ungroupedPlacement: 'end',
-    domainThreshold: 3,
+    domainThreshold: 2,
     autoCollapse: true,
     colorStrategy: 'stable-hash',
     scope: 'current',
@@ -26,7 +26,7 @@ test('applyDefaults: stored values override defaults', () => {
   const result = applyDefaults({ groupOrder: 'alphabetical', autoCollapse: false });
   assert.equal(result.groupOrder, 'alphabetical');
   assert.equal(result.autoCollapse, false);
-  assert.equal(result.domainThreshold, 3); // default preserved
+  assert.equal(result.domainThreshold, 2); // default preserved
 });
 
 test('applyDefaults: ignores unknown keys', () => {
@@ -42,7 +42,7 @@ test('applyDefaults: invalid enum values fall back to default', () => {
 test('applyDefaults: out-of-range threshold clamps to range', () => {
   assert.equal(applyDefaults({ domainThreshold: 1 }).domainThreshold, 2);
   assert.equal(applyDefaults({ domainThreshold: 10 }).domainThreshold, 5);
-  assert.equal(applyDefaults({ domainThreshold: 'bogus' }).domainThreshold, 3);
+  assert.equal(applyDefaults({ domainThreshold: 'bogus' }).domainThreshold, 2);
 });
 
 test('DEFAULTS: includes domainColors empty object', () => {
